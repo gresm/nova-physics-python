@@ -617,7 +617,7 @@ static PyModuleDef nova_module = {
 /**
  * Nova Physics module initializer
  */
-PyMODINIT_FUNC PyInit_nova() {
+PyMODINIT_FUNC PyInit__nova() {
     PyObject *m;
 
     if (PyType_Ready(&nv_SpaceType) < 0)
