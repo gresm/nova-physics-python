@@ -332,12 +332,12 @@ static PyObject *nv_BodyObject_get_vertices(
     PyObject *Py_UNUSED(ignored)
 ) {
     nv_Polygon_model_to_world(self->body);
-    PyObject *return_tup = PyTuple_New(self->body->trans_vertices->size);
+    PyObject *return_tup = PyTuple_New(self->body->shape->trans_vertices->size);
 
     PyObject *vertex_tup;
 
-    for (size_t i = 0; i < self->body->trans_vertices->size; i++) {
-        nv_Vector2 v = NV_TO_VEC2(self->body->trans_vertices->data[i]);
+    for (size_t i = 0; i < self->body->shape->trans_vertices->size; i++) {
+        nv_Vector2 v = NV_TO_VEC2(self->body->shape->trans_vertices->data[i]);
 
         PyTuple_SET_ITEM(return_tup, i, (PyObject *)nv_Vector2Object_new(v.x, v.y));
     }
@@ -506,7 +506,7 @@ static PyObject *nv_SpaceObject_step(
         body_object->position->x = body->position.x;
         body_object->position->y = body->position.y; 
         body_object->angle = body->angle; 
-        body_object->radius = body->radius;
+        body_object->radius = body->shape->radius;
     }
 
     Py_RETURN_NONE;
