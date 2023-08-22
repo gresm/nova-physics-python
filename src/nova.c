@@ -1,6 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "structmember.h"
+#include "nova_docs.h"
 #include "novaphysics/novaphysics.h"
 
 
@@ -10,8 +11,7 @@
  */
 typedef struct {
     PyObject_HEAD
-    double x;
-    double y;
+    nv_Vector2 vec
 } nv_Vector2Object;
 
 /**
@@ -22,7 +22,7 @@ nv_Vector2Object *nv_Vector2Object_new(double x, double y);
 /**
  * Vector2 Python object to Vector2 struct
  */
-#define PY_TO_VEC2(o) (NV_VEC2((o)->x, (o)->y))
+#define PY_TO_VEC2(o) o->vec
 
 /**
  * Body object interface
@@ -63,8 +63,7 @@ static int nv_Vector2Object_init(
     if (!PyArg_ParseTuple(args, "dd", &x, &y))
         return -1;
 
-    self->x = x;
-    self->y = y;
+    self->vec = NV_VEC2(x, y);
 
     return 0;
 }
@@ -154,22 +153,43 @@ static PyNumberMethods nv_Vector2Object_operators = {
 };
 
 /**
- * Vector2 object member interface
+ * Vector2 getters interface
  */
-static PyMemberDef nv_Vector2Object_members[] = {
-    {
-        "x",
-        T_DOUBLE, offsetof(nv_Vector2Object, x), 0,
-        "X component of the vector"
-    },
+static PyObject *nv_Vector2Object_get_x(nv_Vector2Object *self, void *closure) {
+    return PyFloat_FromDouble(self->vec.x);
+}
 
-    {
-        "y",
-        T_DOUBLE, offsetof(nv_Vector2Object, y), 0,
-        "Y component of the vector"
-    },
+static PyObject * nv_Vector2Object_set_x(nv_Vector2Object *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "can't delete attribute");
+        return -1;
+    }
 
-    {NULL} // Sentinel
+    self->vec.x = (nv_float)PyFloat_AsDouble(value);
+
+    return 0;
+}
+
+static PyObject *nv_Vector2Object_get_y(nv_Vector2Object *self, void *closure) {
+    return PyFloat_FromDouble(self->vec.y);
+}
+
+static PyObject * nv_Vector2Object_set_y(nv_Vector2Object *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "can't delete attribute");
+        return -1;
+    }
+
+    self->vec.y = (nv_float)PyFloat_AsDouble(value);
+
+    return 0;
+}
+
+
+static PyGetSetDef nv_Vector2Object_getset[] = {
+    {"x", (getter)nv_Vector2Object_get_x, (setter)nv_Vector2Object_set_x, VECTOR_OBJECT_X},
+    {"y", (getter)nv_Vector2Object_get_y, (setter)nv_Vector2Object_set_y, VECTOR_OBJECT_Y},
+    {NULL, 0, NULL, NULL, NULL} /* Sentinel */
 };
 
 /**
@@ -185,8 +205,8 @@ PyTypeObject nv_Vector2ObjectType = {
     .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor)nv_Vector2Object_dealloc,
     .tp_init = (initproc)nv_Vector2Object_init,
-    .tp_members = nv_Vector2Object_members,
-    .tp_as_number = &nv_Vector2Object_operators
+    .tp_as_number = &nv_Vector2Object_operators,
+    .tp_getset = nv_Vector2Object_getset,
 };
 
 nv_Vector2Object *nv_Vector2Object_new(double x, double y) {
@@ -195,6 +215,10 @@ nv_Vector2Object *nv_Vector2Object_new(double x, double y) {
     Py_DECREF(args);
     Py_INCREF(obj);
     return obj;
+}
+
+nv_Vector2Object *nv_Vector2_to_Vector2Object(nv_Vector2 vec) {
+    return nv_Vector2Object_new(vec.x, vec.y);
 }
 
 
@@ -354,7 +378,7 @@ static PyObject *nv_BodyObject_apply_force(
     if (!PyArg_ParseTuple(args, "O!", &nv_Vector2ObjectType, &force))
         return NULL;
 
-    nv_Body_apply_force(self->body, NV_VEC2(force->x, force->y));
+    nv_Body_apply_force(self->body, force->vec);
 
     Py_RETURN_NONE;
 }
@@ -503,10 +527,10 @@ static PyObject *nv_SpaceObject_step(
         nv_BodyObject *body_object = (nv_BodyObject *)self->body_objects->data[i];
         Py_INCREF(body_object);
         
-        body_object->position->x = body->position.x;
-        body_object->position->y = body->position.y; 
+        body_object->position->vec.x = body->position.x;
+        body_object->position->vec.y = body->position.y; 
         body_object->angle = body->angle; 
-        body_object->radius = body->shape->radius; 
+        body_object->radius = body->shape->radius;
     }
 
     Py_RETURN_NONE;
@@ -579,7 +603,8 @@ PyTypeObject nv_SpaceType = {
     .tp_new = PyType_GenericNew,
     .tp_dealloc = (destructor)nv_SpaceObject_dealloc,
     .tp_init = (initproc)nv_SpaceObject_init,
-    .tp_methods = nv_SpaceObject_methods
+    .tp_methods = nv_SpaceObject_methods,
+    .tp_members = NULL
 };
 
 
@@ -617,7 +642,7 @@ static PyModuleDef nova_module = {
 /**
  * Nova Physics module initializer
  */
-PyMODINIT_FUNC PyInit_nova() {
+PyMODINIT_FUNC PyInit__nova() {
     PyObject *m;
 
     if (PyType_Ready(&nv_SpaceType) < 0)
