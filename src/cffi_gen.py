@@ -99,5 +99,5 @@ def generate() -> None:
                 ):
                     cdef_source += line
 
-    with open("novaphysics_cdef.h", "w") as f:
+    with open("build/novaphysics_cdef.h", "w") as f:
         f.write(cdef_source)

@@ -10,7 +10,7 @@ generate()
 
 ffibuilder = FFI()
 
-with open("novaphysics_cdef.h", "r") as f:
+with open("build/novaphysics_cdef.h", "r") as f:
     ffibuilder.cdef(f.read())
 
 src_path = "build/nova-physics/src"
